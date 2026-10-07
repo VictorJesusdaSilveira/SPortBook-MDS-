@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Reservar | SPortBook</title>
+
+    <link
+        rel="stylesheet"
+        href="../css/style.css"
+    >
+
+    <script src="../js/app.js"></script>
+
+</head>
+
+
+<body>
+
+<script>
+
+const s = requireSession('user');
+
+if (s) {
+
+    const db = getDB();
+
+    let quadraId =
+        db.quadras.find(q => q.ativa)?.id || 1;
+
+    let dataSelecionada =
+        todayISO();
+
+    let duracao = 1;
+
+    let horarioSelecionado = null;
+
+
+    renderLayout(
+        'user',
+        'nova-reserva.html',
+        'Reservar',
+
+        `
+
+        <div class="booking-hero">
+
+            <h1>
+                Reserve sua quadra em poucos cliques
+            </h1>
+
+            <p>
+                Veja os horários livres em tempo real.
+                Sem conflito, sem confusão.
+            </p>
+
+        </div>
+
+
+        <div class="grid">
+
+            <section class="card">
+
+                <div
+                    class="court-tabs"
+                    id="courtTabs"
+                >
+                </div>
+
+
+                <div class="section-label">
+
+                    ESCOLHA A DATA
+
+                </div>
+
+
+                <div
+                    class="date-strip"
+                    id="dates"
+                >
+                </div>
+
+
+                <div class="section-label">
+
+                    DURAÇÃO DA RESERVA
+
+                </div>
+
+
+                <div class="duration-picker">
+
+                    <button
+                        class="duration-option active"
+                        data-hours="1"
+                    >
+                        1 hora
+                    </button>
+
+
+                    <button
+                        class="duration-option"
+                        data-hours="2"
+                    >
+                        2 horas seguidas
+                    </button>
+
+                </div>
+
+
+                <div class="section-label">
+
+                    HORÁRIOS DISPONÍVEIS
+
+                </div>
+
+
+                <div
+                    class="booking-slots"
+                    id="slots"
+                >
+                </div>
+
+
+                <div class="legend">
+
+                    <span>
+                        <i></i>
+                        Livre
+                    </span>
+
+                    <span>
+                        <i class="l-selected"></i>
+                        Selecionado
+                    </span>
+
+                    <span>
+                        <i class="l-reserved"></i>
+                        Reservado
+                    </span>
+
+                    <span>
+                        <i class="l-blocked"></i>
+                        Indisponível
+                    </span>
+
+                </div>
+
+            </section>
+
+
+            <aside class="card">
+
+                <h3>
+                    Resumo da reserva
+                </h3>
+
+
+                <div id="summary">
+
+                    <div class="empty">
+
+                        Selecione um horário
+                        para continuar.
+
+                    </div>
+
+                </div>
+
+
+                <button
+                    id="confirm"
+                    class="btn btn-primary"
+                    style="width:100%;margin-top:15px"
+                    disabled
+                >
+
+                    Confirmar reserva
+
+                </button>
+
+
+                <div class="notice">
+
+                    Cada grupo pode reservar
+                    no máximo 2 horas seguidas
+                    por dia.
+
+                </div>
+
+            </aside>
+
+        </div>
+
+
+        <div class="info-cards">
+
+            <div class="info-card">
+
+                <span class="info-icon">
+                    ✓
+                </span>
+
+                <strong>
+                    Sem choque de horários
+                </strong>
+
+                Horários reservados não
+                podem ser escolhidos.
+
+            </div>
+
+
+            <div class="info-card">
+
+                <span class="info-icon">
+                    ◷
+                </span>
+
+                <strong>
+                    Disponível em tempo real
+                </strong>
+
+                Consulte os horários livres
+                antes de reservar.
+
+            </div>
+
+
+            <div class="info-card">
+
+                <span class="info-icon">
+                    🔒
+                </span>
+
+                <strong>
+                    Seus dados protegidos
+                </strong>
+
+                Acesso protegido por cadastro.
+
+            </div>
+
+        </div>
+
+
+        <div
+            id="toast"
+            class="toast"
+        >
+        </div>
+
+        `
+    );
+
+
+    // ============================
+    // DATAS
+    // ============================
+
+    const nomesDias = [
+        'dom',
+        'seg',
+        'ter',
+        'qua',
+        'qui',
+        'sex',
+        'sáb'
+    ];
+
+
+    function adicionarDias(
+        iso,
+        quantidade
+    ) {
+
+        const d =
+            new Date(
+                iso + 'T12:00:00'
+            );
+
+        d.setDate(
+            d.getDate() + quantidade
+        );
+
+        return d
+            .toISOString()
+            .slice(0, 10);
+    }
+
+
+    // ============================
+    // QUADRAS
+    // ============================
+
+    function desenharQuadras() {
+
+        const d = getDB();
+
+        document.getElementById(
+            'courtTabs'
+        ).innerHTML =
+
+            d.quadras
+
+                .filter(q => q.ativa)
+
+                .map(q => `
+
+                    <button
+                        class="
+                            court-tab
+                            ${
+                                q.id === quadraId
+                                    ? 'active'
+                                    : ''
+                            }
+                        "
+                        onclick="
+                            selecionarQuadra(
+                                ${q.id}
+                            )
+                        "
+                    >
+
+                        ${esc(q.nome)}
+                        ·
+                        ${esc(q.tipo)}
+
+                    </button>
+
+                `)
+
+                .join('');
+    }
+
+
+    // ============================
+    // DATAS
+    // ============================
+
+    function desenharDatas() {
+
+        let html = '';
+
+        for (
+            let i = 0;
+            i < 7;
+            i++
+        ) {
+
+            const iso =
+                adicionarDias(
+                    todayISO(),
+                    i
+                );
+
+            const dt =
+                new Date(
+                    iso + 'T12:00:00'
+                );
+
+
+            html += `
+
+                <div
+                    class="
+                        date-box
+                        ${
+                            iso === dataSelecionada
+                                ? 'active'
+                                : ''
+                        }
+                    "
+                    onclick="
+                        selecionarData(
+                            '${iso}'
+                        )
+                    "
+                >
+
+                    <small>
+                        ${nomesDias[dt.getDay()]}
+                    </small>
+
+                    <strong>
+                        ${
+                            String(
+                                dt.getDate()
+                            ).padStart(2, '0')
+                        }
+                    </strong>
+
+                </div>
+
+            `;
+        }
+
+
+        document.getElementById(
+            'dates'
+        ).innerHTML = html;
+    }
+
+
+    // ============================
+    // HORÁRIOS
+    // ============================
+
+    function desenharHorarios() {
+
+        const d = getDB();
+
+        const container =
+            document.getElementById(
+                'slots'
+            );
+
+
+        horarioSelecionado = null;
+
+        document.getElementById(
+            'confirm'
+        ).disabled = true;
+
+
+        container.innerHTML = '';
+
+
+        for (
+            let minutos = 8 * 60;
+            minutos < 22 * 60;
+            minutos += 60
+        ) {
+
+            const inicio =
+                minToTime(minutos);
+
+            const fim =
+                minToTime(
+                    minutos +
+                    duracao * 60
+                );
+
+
+            const passouDoHorario =
+                minutos +
+                duracao * 60 >
+                22 * 60;
+
+
+            const conflito =
+                passouDoHorario ||
+                isConflict(
+                    d,
+                    quadraId,
+                    dataSelecionada,
+                    inicio,
+                    fim
+                );
+
+
+            const bloqueado =
+                isBlocked(
+                    d,
+                    quadraId,
+                    dataSelecionada,
+                    inicio,
+                    fim
+                );
+
+
+            const elemento =
+                document.createElement(
+                    'div'
+                );
+
+
+            elemento.className =
+                'booking-slot ' +
+                (
+                    conflito ||
+                    bloqueado
+                        ? 'reserved'
+                        : 'available'
+                );
+
+
+            let status = 'Livre';
+
+
+            if (passouDoHorario) {
+
+                status =
+                    'Indisponível';
+
+            }
+            else if (bloqueado) {
+
+                status =
+                    'Indisponível';
+
+            }
+            else if (conflito) {
+
+                status =
+                    'Reservado';
+
+            }
+
+
+            elemento.innerHTML = `
+
+                ${inicio} - ${fim}
+
+                <small>
+                    ${status}
+                </small>
+
+            `;
+
+
+            if (
+                !conflito &&
+                !bloqueado &&
+                !passouDoHorario
+            ) {
+
+                elemento.onclick =
+                    () =>
+                        selecionarHorario(
+                            minutos,
+                            elemento
+                        );
+            }
+
+
+            container.appendChild(
+                elemento
+            );
+        }
+    }
+
+
+    // ============================
+    // SELECIONAR HORÁRIO
+    // ============================
+
+    function selecionarHorario(
+        minutos,
+        elemento
+    ) {
+
+        const d = getDB();
+
+
+        const inicio =
+            minToTime(minutos);
+
+        const fim =
+            minToTime(
+                minutos +
+                duracao * 60
+            );
+
+
+        /*
+         * Se estiver no modo de 1 hora
+         * e o usuário tentar selecionar
+         * outra hora separada, mostramos
+         * a mensagem solicitada.
+         */
+
+        if (
+            duracao === 1 &&
+            horarioSelecionado !== null
+        ) {
+
+            const diferenca =
+                Math.abs(
+                    minutos -
+                    horarioSelecionado
+                );
+
+
+            if (diferenca !== 60) {
+
+                toast(
+                    'As 2 horas precisam ser seguidas. Selecione "2 horas seguidas".'
+                );
+
+                return;
+            }
+
+
+            toast(
+                'Para reservar 2 horas, use a opção "2 horas seguidas".'
+            );
+
+            return;
+        }
+
+
+        if (
+            isConflict(
+                d,
+                quadraId,
+                dataSelecionada,
+                inicio,
+                fim
+            ) ||
+            isBlocked(
+                d,
+                quadraId,
+                dataSelecionada,
+                inicio,
+                fim
+            )
+        ) {
+
+            toast(
+                'Esse horário não está disponível.'
+            );
+
+            desenharHorarios();
+
+            return;
+        }
+
+
+        document
+            .querySelectorAll(
+                '.booking-slot.selected'
+            )
+            .forEach(
+                el =>
+                    el.classList.remove(
+                        'selected'
+                    )
+            );
+
+
+        elemento.classList.add(
+            'selected'
+        );
+
+
+        horarioSelecionado =
+            minutos;
+
+
+        const quadra =
+            d.quadras.find(
+                q =>
+                    q.id === quadraId
+            );
+
+
+        document.getElementById(
+            'summary'
+        ).innerHTML = `
+
+            <div class="summary-row">
+
+                <span>
+                    Quadra
+                </span>
+
+                <strong>
+                    ${esc(quadra.nome)}
+                    ·
+                    ${esc(quadra.tipo)}
+                </strong>
+
+            </div>
+
+
+            <div class="summary-row">
+
+                <span>
+                    Data
+                </span>
+
+                <strong>
+                    ${dateBR(
+                        dataSelecionada
+                    )}
+                </strong>
+
+            </div>
+
+
+            <div class="summary-row">
+
+                <span>
+                    Horário
+                </span>
+
+                <strong>
+                    ${inicio}
+                    -
+                    ${fim}
+                </strong>
+
+            </div>
+
+
+            <div class="summary-row">
+
+                <span>
+                    Duração
+                </span>
+
+                <strong>
+                    ${duracao}h
+                    ${
+                        duracao === 2
+                            ? '(seguido)'
+                            : ''
+                    }
+                </strong>
+
+            </div>
+
+        `;
+
+
+        document.getElementById(
+            'confirm'
+        ).disabled = false;
+    }
+
+
+    // ============================
+    // TROCAR QUADRA
+    // ============================
+
+    window.selecionarQuadra =
+        function (id) {
+
+            quadraId = id;
+
+            desenharQuadras();
+
+            desenharHorarios();
+        };
+
+
+    // ============================
+    // TROCAR DATA
+    // ============================
+
+    window.selecionarData =
+        function (iso) {
+
+            dataSelecionada = iso;
+
+            desenharDatas();
+
+            desenharHorarios();
+        };
+
+
+    // ============================
+    // DURAÇÃO
+    // ============================
+
+    document
+        .querySelectorAll(
+            '.duration-option'
+        )
+        .forEach(button => {
+
+            button.onclick =
+                function () {
+
+                    document
+                        .querySelectorAll(
+                            '.duration-option'
+                        )
+                        .forEach(
+                            b =>
+                                b.classList.remove(
+                                    'active'
+                                )
+                        );
+
+
+                    button.classList.add(
+                        'active'
+                    );
+
+
+                    duracao =
+                        Number(
+                            button.dataset.hours
+                        );
+
+
+                    desenharHorarios();
+                };
+        });
+
+
+    // ============================
+    // CONFIRMAR
+    // ============================
+
+    document
+        .getElementById('confirm')
+        .onclick = function () {
+
+            if (
+                horarioSelecionado === null
+            ) {
+
+                return;
+            }
+
+
+            const d = getDB();
+
+
+            const inicio =
+                minToTime(
+                    horarioSelecionado
+                );
+
+
+            const fim =
+                minToTime(
+                    horarioSelecionado +
+                    duracao * 60
+                );
+
+
+            /*
+             * Apenas uma reserva por usuário
+             * no mesmo dia.
+             */
+
+            if (
+                d.reservations.some(
+                    r =>
+                        r.userId === s.id &&
+                        r.data ===
+                            dataSelecionada &&
+                        r.status ===
+                            'confirmed'
+                )
+            ) {
+
+                toast(
+                    'Você já possui uma reserva nessa data.'
+                );
+
+                return;
+            }
+
+
+            /*
+             * Verificação final
+             * contra conflito.
+             */
+
+            if (
+                isConflict(
+                    d,
+                    quadraId,
+                    dataSelecionada,
+                    inicio,
+                    fim
+                ) ||
+                isBlocked(
+                    d,
+                    quadraId,
+                    dataSelecionada,
+                    inicio,
+                    fim
+                )
+            ) {
+
+                toast(
+                    'Esse período acabou de ser ocupado.'
+                );
+
+                desenharHorarios();
+
+                return;
+            }
+
+
+            d.reservations.push({
+
+                id: d.nextId++,
+
+                userId: s.id,
+
+                userNome: s.nome,
+
+                quadraId: quadraId,
+
+                data: dataSelecionada,
+
+                inicio: inicio,
+
+                fim: fim,
+
+                status: 'confirmed'
+
+            });
+
+
+            saveDB(d);
+
+
+            toast(
+                'Reserva realizada com sucesso!'
+            );
+
+
+            setTimeout(
+                () =>
+                    location.href =
+                        'minhas-reservas.html',
+                700
+            );
+        };
+
+
+    // Inicialização
+
+    desenharQuadras();
+
+    desenharDatas();
+
+    desenharHorarios();
+}
+
+</script>
+
+</body>
+
+</html>

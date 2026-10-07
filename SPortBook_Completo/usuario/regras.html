@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Regras de uso | SPortBook</title>
+
+    <link
+        rel="stylesheet"
+        href="../css/style.css"
+    >
+
+    <script src="../js/app.js"></script>
+
+</head>
+
+
+<body>
+
+<script>
+
+const s =
+    requireSession('user');
+
+
+if (s) {
+
+    renderLayout(
+
+        'user',
+
+        'regras.html',
+
+        'Regras de uso',
+
+        `
+
+        <div class="hero">
+
+            <h1>
+                Regras de uso
+            </h1>
+
+            <p>
+                Confira as regras antes
+                de realizar sua reserva.
+            </p>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="rule-list">
+
+
+                <div class="rule">
+
+                    <strong>
+                        1. Cadastro obrigatório
+                    </strong>
+
+                    <p>
+                        A reserva da quadra só é
+                        permitida para usuários
+                        cadastrados e autenticados
+                        no SPortBook.
+                    </p>
+
+                </div>
+
+
+                <div class="rule">
+
+                    <strong>
+                        2. Duração da reserva
+                    </strong>
+
+                    <p>
+                        O usuário pode reservar
+                        1 hora ou 2 horas seguidas.
+                        Não é permitido reservar
+                        duas horas separadas.
+                    </p>
+
+                </div>
+
+
+                <div class="rule">
+
+                    <strong>
+                        3. Limite diário
+                    </strong>
+
+                    <p>
+                        Cada grupo pode reservar
+                        no máximo 2 horas seguidas
+                        por dia.
+                    </p>
+
+                </div>
+
+
+                <div class="rule">
+
+                    <strong>
+                        4. Conflito de horários
+                    </strong>
+
+                    <p>
+                        Um horário que já possui
+                        uma reserva não poderá
+                        ser reservado por outra
+                        pessoa.
+                    </p>
+
+                </div>
+
+
+                <div class="rule">
+
+                    <strong>
+                        5. Cancelamento
+                    </strong>
+
+                    <p>
+                        O usuário poderá cancelar
+                        suas reservas através da
+                        página "Minhas reservas".
+                    </p>
+
+                </div>
+
+
+                <div class="rule">
+
+                    <strong>
+                        6. Horários indisponíveis
+                    </strong>
+
+                    <p>
+                        O administrador pode
+                        indisponibilizar horários
+                        para manutenção, eventos
+                        ou outros motivos.
+                    </p>
+
+                </div>
+
+
+                <div class="rule">
+
+                    <strong>
+                        7. Uso responsável
+                    </strong>
+
+                    <p>
+                        O usuário deve respeitar
+                        o horário reservado e
+                        as regras de utilização
+                        da quadra.
+                    </p>
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+        `
+
+    );
+
+}
+
+</script>
+
+</body>
+
+</html>
